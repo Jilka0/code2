@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Adresse jQuery</title>
+  
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- importation de la bibliothèque jQuery -->
+</head>
+<body>
+
+  <!-- champ pour entrer le code postal avec 5 chiffres max -->
+  <input id="cp" placeholder="Code postal" maxlength="5"><br><br>
+
+  <!-- Champ pour entrer la ville avec écrit "ville" dedans -->
+  <input id="ville" placeholder="Ville">
+  
+  <!-- Liste des suggestions de villes qui apparaissent sous le champ -->
+  <ul id="ville-sug"></ul><br>
+
+  <!-- Champ pour entrer l'adresse avec écrit "adresse" -->
+  <input id="adresse" placeholder="Adresse">
+  
+  <!-- Liste des suggestions d'adresses qui apparaissent sous le champ -->
+  <ul id="sug"></ul>
+
+  <script>
+    // début du script jQuery
+    $(function() {
+
+      // Partie de l'input dans le champ "Code postal"
+      $('#cp').on('input', function() {
+        // Si la longueur du code postal atteint 5 caractères, lancer la recherche de villes
+        if (this.value.length === 5) {
+          // Envoie une requête GET vers l'API pour récupérer les villes correspondant au code postal
+          $.get(`https://api-adresse.data.gouv.fr/search/?q=${this.value}&type=municipality`, d => {
+            // Extraction des noms des villes à partir des résultats de l'API
+            const villes = [...new Set(d.features.map(f => f.properties.city))]; // On enlève les doublons avec "Set"
+            
+            // On affiche les nouvelles suggestions de villes dans la liste
+            $('#ville-sug').html(villes.map(v => `<li>${v}</li>`));
+          });
+        }
+      });
+
+      // Partie de la sélection de la liste dans le champ "Code postal"
+      $('#ville-sug').on('click', 'li', function() {
+        // Quand l'utilisateur clique sur une ville dans la liste de suggestions, on remplit le champ "ville" avec le nom de la ville
+        $('#ville').val($(this).text());
+        // On vide la liste de suggestions de villes
+        $('#ville-sug').empty();
+      });
+
+      // Partie de l'input dans le champ "adresse"
+      $('#adresse').on('input', function() {
+        // On récupère les valeurs rentrées dans le champ code postal et ville
+        const q = this.value,           // Le texte rentré dans le champ adresse
+              cp = $('#cp').val(),      // Le code postal rentré
+              ville = $('#ville').val(); // La ville sélectionnée
+
+        // Si la longueur du texte saisi dans "adresse" est supérieure à 2, on lance la recherche d'adresses
+        if (q.length > 2) {
+          // Envoie une requête GET vers l'API pour récupérer des suggestions d'adresses
+          $.get(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&postcode=${cp}&city=${encodeURIComponent(ville)}&limit=5`, d => {
+            // On vide la liste des suggestions d'adresses et on y met les nouvelles suggestions
+            $('#sug').html(d.features.map(f => `<li>${f.properties.label}</li>`));
+          });
+        }
+      });
+
+      // Partie de la sélection de la liste dans le champ "adresse"
+      $('#sug').on('click', 'li', function() {
+        // Quand l'utilisateur clique sur une adresse dans la liste de suggestions, on remplit le champ "adresse" avec l'adresse sélectionnée
+        $('#adresse').val($(this).text());
+        // On vide la liste des suggestions d'adresses
+        $('#sug').empty();
+      });
+
+    });
+  </script>
+
+</body>
+</html>
